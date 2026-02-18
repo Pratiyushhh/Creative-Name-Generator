@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Copy, Check, RotateCcw } from "lucide-react";
+import { Copy, Check, RotateCcw, Keyboard } from "lucide-react";
 
 export default function CreativeNameGenerator() {
     const [role, setRole] = useState("");
@@ -28,6 +28,10 @@ export default function CreativeNameGenerator() {
     const [today, setToday] = useState("");
     const [copied, setCopied] = useState(false);
     const [fileExtension, setFileExtension] = useState("");
+    
+    // Ref for the checkbox to manage focus
+    const checkboxRef = useRef<HTMLButtonElement>(null);
+    const [isCheckboxFocused, setIsCheckboxFocused] = useState(false);
 
     useEffect(() => {
         const date = new Date();
@@ -35,7 +39,43 @@ export default function CreativeNameGenerator() {
         setToday(formattedDate);
     }, []);
 
-    // Format entity: convert spaces to dots for the name generation
+    // Keyboard shortcut handler
+    const handleKeyDown = useCallback((event: KeyboardEvent) => {
+        // Ctrl+C to copy generated name
+        if ((event.ctrlKey || event.metaKey) && event.key === 'c' && generatedName) {
+            const activeElement = document.activeElement;
+            const isInputFocused = activeElement && (
+                activeElement.tagName === 'INPUT' || 
+                activeElement.tagName === 'TEXTAREA' ||
+                activeElement.getAttribute('contenteditable') === 'true'
+            );
+
+            if (!isInputFocused || window.getSelection()?.toString() === '') {
+                event.preventDefault();
+                copyToClipboard();
+            }
+        }
+        
+        // Ctrl+Enter to submit form
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+            event.preventDefault();
+            generateName();
+        }
+        
+        // Enter to toggle checkbox when focused
+        if (event.key === 'Enter' && isCheckboxFocused) {
+            event.preventDefault();
+            setVariation(prev => !prev);
+        }
+    }, [generatedName, isCheckboxFocused]);
+
+    useEffect(() => {
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [handleKeyDown]);
+
     const formatEntity = (text: string) => {
         if (!text) return "";
         return text
@@ -114,7 +154,6 @@ export default function CreativeNameGenerator() {
                     const angleParts = remainingParts.slice(0, -2);
                     const angleValue = angleParts.join(' ').replace(/\./g, ' ').trim();
                     
-                    // Map angles (case-insensitive, handle both dot and space versions)
                     const angleMap: { [key: string]: string } = {
                         "UGC": "UGC",
                         "EGC": "EGC",
@@ -160,10 +199,7 @@ export default function CreativeNameGenerator() {
     };
 
     const generateName = () => {
-        // Format product with dots
         const formattedProduct = formatEntity(product);
-        
-        // Format angle with dots (whether it's from dropdown or custom)
         const baseAngle = angle === "Other" ? formatEntity(customAngle) : formatEntity(angle);
         
         const variationCode = variation && variationNumber 
@@ -312,7 +348,7 @@ export default function CreativeNameGenerator() {
                                     <Input 
                                         value={product} 
                                         onChange={(e) => setProduct(e.target.value)} 
-                                        placeholder="Ariana Blossom"
+                                        placeholder="Enter Product Name"
                                         className="w-full"
                                     />
                                 </div>
@@ -369,12 +405,23 @@ export default function CreativeNameGenerator() {
                             </div>
                         )}
 
-                        <div className="flex items-center space-x-3">
+                        {/* Checkbox with focus tracking */}
+                        <div 
+                            className="flex items-center space-x-3 outline-none rounded-md p-1 w-fit"
+                            onFocus={() => setIsCheckboxFocused(true)}
+                            onBlur={() => setIsCheckboxFocused(false)}
+                            tabIndex={0}
+                        >
                             <Checkbox
+                                ref={checkboxRef}
                                 checked={variation}
                                 onCheckedChange={(checked) => setVariation(checked === true)}
+                                onFocus={() => setIsCheckboxFocused(true)}
+                                onBlur={() => setIsCheckboxFocused(false)}
                             />
-                            <Label>Variation (defaults to V00 if unchecked)</Label>
+                            <Label className="cursor-pointer select-none">
+                                Variation (defaults to V00 if unchecked) {isCheckboxFocused && <span className="text-xs text-gray-400 ml-1">(Press Enter to toggle)</span>}
+                            </Label>
                         </div>
 
                         {variation && (
@@ -391,29 +438,41 @@ export default function CreativeNameGenerator() {
                             </div>
                         )}
 
-                        {/* Button Row - Full Width */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <Button 
-                                variant="outline" 
-                                onClick={resetFields}
-                                className="w-full"
-                            >
-                                <RotateCcw className="w-4 h-4 mr-2" />
-                                Reset Fields
-                            </Button>
-                            <Button 
-                                onClick={generateName}
-                                className="w-full"
-                            >
-                                Generate Name
-                            </Button>
+                        {/* Button Row - Full Width with keyboard hint */}
+                        <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-4">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={resetFields}
+                                    className="w-full"
+                                >
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    Reset Fields
+                                </Button>
+                                <Button 
+                                    onClick={generateName}
+                                    className="w-full"
+                                >
+                                    Generate Name
+                                </Button>
+                            </div>
+                            <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1">
+                                <Keyboard className="w-3 h-3" />
+                                Press Ctrl+Enter to generate
+                            </p>
                         </div>
 
-                        {/* Generated Name Section with Copy Button */}
+                        {/* Generated Name Section with Copy Button and Keyboard Shortcut Hint */}
                         {generatedName && (
                             <div className="p-4 bg-gray-100 rounded-xl space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <p className="text-sm text-gray-600">Generated Name:</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm text-gray-600">Generated Name:</p>
+                                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                                            <Keyboard className="w-3 h-3" />
+                                            Press Ctrl+C to copy
+                                        </span>
+                                    </div>
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
