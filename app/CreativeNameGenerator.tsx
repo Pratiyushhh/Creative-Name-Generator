@@ -35,6 +35,7 @@ export default function CreativeNameGenerator() {
         setToday(formattedDate);
     }, []);
 
+    // Format entity: convert spaces to dots for the name generation
     const formatEntity = (text: string) => {
         if (!text) return "";
         return text
@@ -81,36 +82,55 @@ export default function CreativeNameGenerator() {
         const parts = cleanName.split('_');
         
         if (parts.length >= 6) {
-            setFormat(parts[0] || "");
-            setCreation(parts[1] || "");
+            const normalizedParts = parts.map(p => p.toUpperCase().trim());
+            
+            setFormat(normalizedParts[0] || "");
+            setCreation(normalizedParts[1] || "");
             
             const knownCategories = ["AN", "BR", "ER", "NK", "RG", "ST", "SHS"];
             let foundCategoryIndex = -1;
             
-            for (let i = 2; i < parts.length; i++) {
-                if (knownCategories.includes(parts[i])) {
+            for (let i = 2; i < normalizedParts.length; i++) {
+                if (knownCategories.includes(normalizedParts[i])) {
                     foundCategoryIndex = i;
                     break;
                 }
             }
             
             if (foundCategoryIndex > 2) {
-                const productValue = parts.slice(2, foundCategoryIndex).join('_').replace(/\./g, ' ');
+                const productParts = parts.slice(2, foundCategoryIndex);
+                const productValue = productParts.join(' ').replace(/\./g, ' ').trim();
                 setProduct(productValue);
                 
-                setCategory(parts[foundCategoryIndex] || "");
+                setCategory(normalizedParts[foundCategoryIndex] || "");
                 
                 const remainingParts = parts.slice(foundCategoryIndex + 1);
-                if (remainingParts.length >= 2) {
-                    const variationPart = remainingParts[remainingParts.length - 2];
-                    const datePart = remainingParts[remainingParts.length - 1];
+                const remainingNormalized = normalizedParts.slice(foundCategoryIndex + 1);
+                
+                if (remainingNormalized.length >= 2) {
+                    const variationPart = remainingNormalized[remainingNormalized.length - 2];
+                    const datePart = remainingNormalized[remainingNormalized.length - 1];
                     
                     const angleParts = remainingParts.slice(0, -2);
-                    const angleValue = angleParts.join('_').replace(/\./g, ' ');
+                    const angleValue = angleParts.join(' ').replace(/\./g, ' ').trim();
                     
-                    const knownAngles = ["UGC", "EGC", "Single Image", "Storytelling", "Testimonial"];
-                    if (knownAngles.includes(angleValue)) {
-                        setAngle(angleValue);
+                    // Map angles (case-insensitive, handle both dot and space versions)
+                    const angleMap: { [key: string]: string } = {
+                        "UGC": "UGC",
+                        "EGC": "EGC",
+                        "SINGLE IMAGE": "Single Image",
+                        "SINGLEIMAGE": "Single Image",
+                        "SINGLE.IMAGE": "Single Image",
+                        "STORYTELLING": "Storytelling",
+                        "TESTIMONIAL": "Customer Testimonial",
+                        "CUSTOMER TESTIMONIAL": "Customer Testimonial",
+                        "CUSTOMERTESTIMONIAL": "Customer Testimonial",
+                        "CUSTOMER.TESTIMONIAL": "Customer Testimonial"
+                    };
+                    
+                    const angleKey = angleValue.toUpperCase().replace(/\s+/g, '');
+                    if (angleMap[angleKey]) {
+                        setAngle(angleMap[angleKey]);
                         setCustomAngle("");
                     } else {
                         setAngle("Other");
@@ -140,8 +160,11 @@ export default function CreativeNameGenerator() {
     };
 
     const generateName = () => {
+        // Format product with dots
         const formattedProduct = formatEntity(product);
-        const baseAngle = angle === "Other" ? formatEntity(customAngle) : angle;
+        
+        // Format angle with dots (whether it's from dropdown or custom)
+        const baseAngle = angle === "Other" ? formatEntity(customAngle) : formatEntity(angle);
         
         const variationCode = variation && variationNumber 
             ? `V${String(variationNumber).padStart(2, '0')}` 
@@ -179,7 +202,7 @@ export default function CreativeNameGenerator() {
             >
                 <Card className="rounded-2xl shadow-lg">
                     <CardContent className="p-6 space-y-6">
-                        <h1 className="text-2xl font-semibold text-center">Creative & Ad Name Generator</h1>
+                        <h1 className="text-2xl font-semibold">Creative & Ad Name Generator</h1>
 
                         <div className="space-y-4">
                             {/* Role Selection - Full Width */}
@@ -289,7 +312,7 @@ export default function CreativeNameGenerator() {
                                     <Input 
                                         value={product} 
                                         onChange={(e) => setProduct(e.target.value)} 
-                                        placeholder="Ariana.Blossom"
+                                        placeholder="Ariana Blossom"
                                         className="w-full"
                                     />
                                 </div>
@@ -324,9 +347,9 @@ export default function CreativeNameGenerator() {
                                         <SelectContent>
                                             <SelectItem value="UGC">UGC</SelectItem>
                                             <SelectItem value="EGC">EGC</SelectItem>
-                                            <SelectItem value="Single.Image">Single Image</SelectItem>
+                                            <SelectItem value="Single Image">Single Image</SelectItem>
                                             <SelectItem value="Storytelling">Storytelling</SelectItem>
-                                            <SelectItem value="Testimonial">Testimonial</SelectItem>
+                                            <SelectItem value="Customer Testimonial">Customer Testimonial</SelectItem>
                                             <SelectItem value="Other">Other</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -340,7 +363,7 @@ export default function CreativeNameGenerator() {
                                 <Input 
                                     value={customAngle} 
                                     onChange={(e) => setCustomAngle(e.target.value)} 
-                                    placeholder="e.g., special offer -> Special.Offer"
+                                    placeholder="e.g., Customer Testimonial"
                                     className="w-full"
                                 />
                             </div>
