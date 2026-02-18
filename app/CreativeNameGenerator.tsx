@@ -202,7 +202,7 @@ export default function CreativeNameGenerator() {
             >
                 <Card className="rounded-2xl shadow-lg">
                     <CardContent className="p-6 space-y-6">
-                        <h1 className="text-2xl font-semibold">Creative & Ad Name Generator</h1>
+                        <h1 className="text-2xl font-semibold text-center">Creative & Ad Name Generator</h1>
 
                         <div className="space-y-4">
                             {/* Role Selection - Full Width */}
