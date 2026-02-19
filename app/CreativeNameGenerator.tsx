@@ -56,8 +56,8 @@ export default function CreativeNameGenerator() {
             }
         }
         
-        // Ctrl+Enter to submit form
-        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        // Ctrl+End to submit form
+        if ((event.ctrlKey || event.metaKey) && event.key === 'End') {
             event.preventDefault();
             generateName();
         }
@@ -458,7 +458,7 @@ export default function CreativeNameGenerator() {
                             </div>
                             <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1">
                                 <Keyboard className="w-3 h-3" />
-                                Press Ctrl+Enter to generate
+                                Press Ctrl+End to generate
                             </p>
                         </div>
 
